@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@dagrejs/dagre": "^2.0.3",
-    "@dagrejs/graphlib": "^2.2.4",
+    "@dagrejs/graphlib": "2.2.4",
     "@hookform/resolvers": "^5.2.2",
     "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-accordion": "^1.2.12",
