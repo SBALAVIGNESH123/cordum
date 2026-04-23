@@ -147,6 +147,18 @@ func (s *server) installPackFromDir(ctx context.Context, bundleDir string, opts 
 		return packRecord{}, nil, &packInstallError{Status: http.StatusBadRequest, Err: err}
 	}
 	if err := validatePackManifest(manifest); err != nil {
+		if topic, packID, ok := classifyPackValidationError(err); ok {
+			// Structured log so operators hitting the pack-namespace invariant see
+			// the exact topic, expected prefix, and the derivation source in one
+			// line — the HTTP 400 body alone is too terse for remote diagnosis of
+			// a failing install.
+			slog.Error("pack_install_topic_namespace_violation",
+				"pack_id", packID,
+				"topic", topic,
+				"expected_prefix", "job."+packID+".*",
+				"error", err.Error(),
+			)
+		}
 		return packRecord{}, nil, &packInstallError{Status: http.StatusBadRequest, Err: err}
 	}
 	if err := ensureProtocolCompatible(manifest); err != nil {

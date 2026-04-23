@@ -204,6 +204,29 @@ these entries into a versioned release note and reset this file.
 
 ## Fixed
 
+- **demo-quickstart pack install now succeeds end-to-end.** Topics in
+  `demo/quickstart/pack/pack.yaml` are now `job.demo-quickstart.*`
+  (formerly `job.demo.*`), satisfying the gateway's pack-namespace
+  invariant (`job.<metadata.id>.*`). The validator error message
+  itself was upgraded at
+  `core/controlplane/gateway/packs/validate.go` and the
+  cordumctl-side mirror at `cmd/cordumctl/pack.go` — a rejection now
+  reads `topic "<offender>" must be namespaced under job.<id>.*
+  (derived from pack metadata.id="<id>")` so the three tokens that
+  drive the triage (offender, expected prefix, derivation source)
+  are all present in one line. When validation reaches the gateway
+  install path, it also emits a
+  structured `pack_install_topic_namespace_violation` log record
+  with `pack_id`, `topic`, `expected_prefix`, and `error` fields
+  before returning the 400. The default `cordumctl pack install`
+  path still fails locally first, so operators typically see the
+  richer CLI error before the gateway sees the manifest.
+  The end-to-end happy path is documented at
+  [`docs/deployment/quickstart.md`](../deployment/quickstart.md) and
+  guarded by a new `demo-quickstart-e2e` CI workflow that installs
+  the pack against the default compose stack and asserts all three
+  verdicts (`ALLOW`, `DENY`, `REQUIRE_APPROVAL`) surface from
+  `cordumctl demo run quickstart`.
 - **Session token entropy failure surface
   (`core/controlplane/gateway/handlers_auth.go`):** `buildUserLoginResponse`
   now returns the opaque `errSessionTokenEntropy` sentinel instead of a

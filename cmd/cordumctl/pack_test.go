@@ -175,6 +175,33 @@ func TestValidatePackManifest(t *testing.T) {
 	}
 }
 
+// TestValidatePackManifest_TopicNamespaceErrorShape mirrors the gateway-side
+// test of the same intent on the cordumctl client-side validator. The two
+// validators MUST produce the same error shape (offending topic, expected
+// prefix, derived pack id) so operators see a consistent diagnosis whether
+// the rejection surfaces at the CLI pre-flight or at the gateway install.
+func TestValidatePackManifest_TopicNamespaceErrorShape(t *testing.T) {
+	manifest := &packManifest{
+		Metadata: packMetadata{ID: "demo-quickstart", Version: "1.0.0"},
+		Topics:   []packTopic{{Name: "job.other-pack.greet"}},
+	}
+
+	err := validatePackManifest(manifest)
+	if err == nil {
+		t.Fatal("expected error for topic not namespaced under job.<id>.*")
+	}
+	msg := err.Error()
+	for _, want := range []string{
+		"job.other-pack.greet",
+		"job.demo-quickstart.*",
+		`metadata.id="demo-quickstart"`,
+	} {
+		if !strings.Contains(msg, want) {
+			t.Fatalf("error %q missing required token %q", msg, want)
+		}
+	}
+}
+
 func TestValidatePackManifestTopicSchemaRefs(t *testing.T) {
 	manifest := &packManifest{
 		Metadata: packMetadata{ID: "pack1", Version: "1.0.0"},

@@ -80,6 +80,56 @@ func TestValidatePackManifest_TopicNoSchemaIsValid(t *testing.T) {
 	}
 }
 
+// TestValidatePackManifest_TopicNamespaceReject pins the three-token error
+// shape for the pack-namespace invariant: a manifest whose topic is not
+// namespaced under `job.<metadata.id>.*` must be rejected with an error that
+// names the offending topic, the expected prefix, AND the derived pack id.
+// Operators hit this during `cordumctl pack install` and the message is the
+// single-line diagnosis — dropping any of the three tokens makes the failure
+// harder to triage.
+func TestValidatePackManifest_TopicNamespaceReject(t *testing.T) {
+	manifest := &PackManifest{
+		Metadata: PackMetadata{ID: "demo-quickstart", Version: "1.0.0"},
+		Topics: []PackTopic{
+			{Name: "job.other-pack.greet"},
+		},
+	}
+
+	err := ValidatePackManifest(manifest)
+	if err == nil {
+		t.Fatal("expected error for topic not namespaced under job.<id>.*")
+	}
+	msg := err.Error()
+	for _, want := range []string{
+		"job.other-pack.greet",    // offending topic
+		"job.demo-quickstart.*",   // expected prefix
+		`metadata.id="demo-quickstart"`, // explicit derivation source so operators see which
+		// manifest field produced the prefix (not just transitively via the
+		// prefix substring). Required phrasing: `metadata.id="<id>"`.
+	} {
+		if !strings.Contains(msg, want) {
+			t.Fatalf("error %q missing required token %q", msg, want)
+		}
+	}
+}
+
+// TestValidatePackManifest_TopicNamespaceAccept is the matching accept path
+// for TestValidatePackManifest_TopicNamespaceReject: same manifest shape, but
+// the topic is correctly namespaced under the pack id. Guards against a
+// validator refactor that over-restricts valid topic names.
+func TestValidatePackManifest_TopicNamespaceAccept(t *testing.T) {
+	manifest := &PackManifest{
+		Metadata: PackMetadata{ID: "demo-quickstart", Version: "1.0.0"},
+		Topics: []PackTopic{
+			{Name: "job.demo-quickstart.greet"},
+		},
+	}
+
+	if err := ValidatePackManifest(manifest); err != nil {
+		t.Fatalf("expected valid namespaced topic, got: %v", err)
+	}
+}
+
 // buildTarGz creates a gzipped tar archive from the given entries.
 func buildTarGz(t *testing.T, entries []tar.Header, contents map[string]string) *bytes.Buffer {
 	t.Helper()

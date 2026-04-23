@@ -87,7 +87,7 @@ func ValidatePackManifest(manifest *PackManifest) error {
 			return errors.New("topic name required")
 		}
 		if !strings.HasPrefix(topic.Name, "job."+id+".") {
-			return fmt.Errorf("topic %q must be namespaced under job.%s.*", topic.Name, id)
+			return fmt.Errorf("topic %q must be namespaced under job.%s.* (derived from pack metadata.id=%q)", topic.Name, id, id)
 		}
 	}
 	schemaIDs := make(map[string]struct{}, len(manifest.Resources.Schemas))
@@ -239,7 +239,7 @@ func ValidatePoolsPatch(patch map[string]any, packID string, current any) error 
 		}
 		for topic := range topics {
 			if !strings.HasPrefix(topic, "job."+packID+".") {
-				return fmt.Errorf("pools topic %q must be namespaced under job.%s.*", topic, packID)
+				return fmt.Errorf("pools topic %q must be namespaced under job.%s.* (derived from pack metadata.id=%q)", topic, packID, packID)
 			}
 		}
 	}
@@ -298,7 +298,7 @@ func ValidateTimeoutsPatch(patch map[string]any, packID string) error {
 		}
 		for topic := range topics {
 			if !strings.HasPrefix(topic, "job."+packID+".") {
-				return fmt.Errorf("timeouts topic %q must be namespaced under job.%s.*", topic, packID)
+				return fmt.Errorf("timeouts topic %q must be namespaced under job.%s.* (derived from pack metadata.id=%q)", topic, packID, packID)
 			}
 		}
 	}
